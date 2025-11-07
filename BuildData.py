@@ -1,4 +1,4 @@
-import json
+import csv
 import logging
 
 from nhlpy import NHLClient
@@ -20,14 +20,11 @@ Avoid multiple rows for a single game by recoding the IDs for games already proc
 """
 games_processed = []
 
-"""
-Cache the generated rows to write out to csv
-"""
-data = []
 
 client = NHLClient()
 
 for season in PastSeasons:
+    data = []
     logger.info(f"Start of processing for season '{season}'.")
     
     for team in TeamMap:
@@ -58,6 +55,12 @@ for season in PastSeasons:
         except Exception as e:
             print("\033[31mException occured. Check logs.\033[0m")
             logger.exception(f"Exception processing team_season_schedule query: '{str(e)}'.", stack_info=True)
+
+
+    writer = csv.writer(open(f"{season}.csv", 'w', newline=''))
+    for row in data:
+        writer.writerow(row)
+                        
         
 #print(data) # TODO: remove debugging statement
 print(f"Total games added to database: '{len(games_processed)}'.") # TODO: Remove debugging statement
