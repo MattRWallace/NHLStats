@@ -6,7 +6,6 @@ NHL API to indicate game type.
 
 Since the NHL doesn't document their API, value map was obtained
 from here:
-
 https://github.com/Zmalski/NHL-API-Reference/issues/23#issuecomment-2492925102
 """
 class GameType(Enum):

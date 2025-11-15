@@ -1,7 +1,8 @@
 from enum import Enum
 
 """
-Enumeration to map positions to numerical values
+Enumeration to map positions to numerical values. Numerical values match those
+used by the NHL API and should only be changed if the API changes.
 """
 class Position(Enum):
     C = 1       # Center

@@ -1,7 +1,7 @@
 from model.team_map import TeamMap
 
 """
-Represents a single game entry in the dataset.
+Class to represent a single game entry in the dataset.
 """
 class GameEntry:
     def __init__(
