@@ -42,15 +42,7 @@ class PlayerInfo:
     def from_json(cls, json_data):
         # TODO: Need to gracefully handle missing data
         
-        # Pandas to_timedelta needs hours minutes and seconds to pass argument
-        # validation.
-        # TODO: Is there a neater way to do this?
-
         toi = json_data["toi"]
-        # if str(toi).count(":") == 1:
-        #     toi = f"00:{toi}"
-        # toi = pd.to_timedelta(toi).total_seconds()
-
         toi = timedelta(hours=int(toi[:-3]), minutes=int(toi[-2:])).total_seconds()
         
         obj = cls(

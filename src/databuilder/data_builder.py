@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 
@@ -62,7 +63,7 @@ class DataBuilder:
                             #   encapsualated that way anyways
                             entry = f"{repr(GameEntry.from_json(box_score))},{homeRoster},{awayRoster}"
                             logger.info(f"Adding game entry to data set: '{entry}'.")
-                            data.append(entry)
+                            data.append(entry.split(','))
 
                         except Exception as e:
                             print("\033[31mException occured. Check logs.\033[0m")
@@ -74,7 +75,7 @@ class DataBuilder:
 
 
             df = pd.DataFrame(data)
-            df.to_csv(f"{season}.csv", index=False, header=False)
+            df.to_csv(f"{season}.csv", index=False, header=False, quoting=csv.QUOTE_NONE, escapechar="\\")
                                 
                 
         #print(data) # TODO: remove debugging statement
