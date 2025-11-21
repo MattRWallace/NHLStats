@@ -2,7 +2,9 @@ from datetime import timedelta
 
 from model.utility import Utility
 
-
+"""
+Super class for representing a single player's stats set.
+"""
 class PlayerInfo:
     def __init__(
             self,
@@ -17,7 +19,7 @@ class PlayerInfo:
         return timedelta(hours=int(toi[:-3]), minutes=int(toi[-2:])).total_seconds()
 
 """
-Class to represent a single player's stats set.
+Class to represent a single skater's stats set.
 """
 class SkaterInfo(PlayerInfo):
     
@@ -90,6 +92,9 @@ class SkaterInfo(PlayerInfo):
             )
     
 
+"""
+Class to represent a single goalie's stats set.
+"""
 class GoalieInfo(PlayerInfo):
 
     def __init__(

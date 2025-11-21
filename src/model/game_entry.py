@@ -13,14 +13,14 @@ class GameEntry:
             loser_score,
             loser_sog,
             winning_franchise,
-            winner):
+            winner_home_or_away):
         self._num_periods = num_periods
         self._winner_score = winner_score
         self._winner_sog = winner_sog
         self._loser_score = loser_score
         self._loser_sog = loser_sog
         self._winning_franchise = winning_franchise
-        self._winner = winner
+        self._winner_home_or_away = winner_home_or_away
 
     """
     Labels for the dataset columns represented as a list of strings.
@@ -138,13 +138,13 @@ class GameEntry:
         awayTeamSog = json_data["awayTeam"]["sog"]
 
         if homeTeamScore > awayTeamScore:
-            winner = HomeOrAway.HOME
+            winner_home_or_away = HomeOrAway.HOME
             winning_franchise = TeamMap[homeTeamAbbrev]
         else:
-            winner = HomeOrAway.AWAY
+            winner_home_or_away = HomeOrAway.AWAY
             winning_franchise = TeamMap[awayTeamAbbrev]
 
-        if winner == HomeOrAway.HOME:
+        if winner_home_or_away == HomeOrAway.HOME:
             winner_score = homeTeamScore
             winner_sog = homeTeamSog
             loser_score = awayTeamScore
@@ -162,12 +162,12 @@ class GameEntry:
             loser_score,
             loser_sog,
             winning_franchise,
-            winner
+            winner_home_or_away
             )
         return obj
 
     def add_roster(self, home_roster, away_roster):
-        if self._winner == HomeOrAway.HOME:
+        if self._winner_home_or_away == HomeOrAway.HOME:
             self._winning_roster = home_roster
             self._losing_roster = away_roster
         else:
