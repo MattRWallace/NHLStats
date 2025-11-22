@@ -4,16 +4,23 @@ import sys
 
 import pandas as pd
 from nhlpy import NHLClient
+from pythonjsonlogger import jsonlogger
 
 from model.game_entry import GameEntry
 from model.game_type import GameType
 from model.naive_player_summarizer import NaivePlayerSummarizer
-from model.player_info import GoalieInfo, SkaterInfo
 from model.seasons import PastSeasons
 from model.team_map import TeamMap
 
-logger = logging.getLogger("BuildData")
-logging.basicConfig(filename="buildData.log", level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler("buildData.log")
+formatter = jsonlogger.JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# logging.basicConfig(filename="buildData.log", level=logging.INFO)
+
 logger.info("Starting data fetch")
 
 
