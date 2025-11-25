@@ -1,5 +1,8 @@
+from loggingconfig.logging_config import LoggingConfig
 from model.home_or_away import HomeOrAway
 from model.team_map import TeamMap
+
+logger = LoggingConfig.get_logger(__name__)
 
 """
 Class to represent a single game entry in the dataset.
@@ -21,6 +24,8 @@ class GameEntry:
         self._loser_sog = loser_sog
         self._winning_franchise = winning_franchise
         self._winner_home_or_away = winner_home_or_away
+
+        logger.info("GameEntry created..")
 
     """
     Labels for the dataset columns represented as a list of strings.
@@ -130,6 +135,8 @@ class GameEntry:
     """
     @classmethod
     def from_json(cls, json_data):
+        logger.info(f"Creating GameEntry from JSON data. JSON:'{json_data}'.")
+
         homeTeamAbbrev = json_data["homeTeam"]["abbrev"]
         homeTeamScore = json_data["homeTeam"]["score"]
         homeTeamSog = json_data["homeTeam"]["sog"]
@@ -138,9 +145,11 @@ class GameEntry:
         awayTeamSog = json_data["awayTeam"]["sog"]
 
         if homeTeamScore > awayTeamScore:
+            logger.info("Winner is home team.")
             winner_home_or_away = HomeOrAway.HOME
             winning_franchise = TeamMap[homeTeamAbbrev]
         else:
+            logger.info("Winner is away team.")
             winner_home_or_away = HomeOrAway.AWAY
             winning_franchise = TeamMap[awayTeamAbbrev]
 
@@ -164,9 +173,12 @@ class GameEntry:
             winning_franchise,
             winner_home_or_away
             )
+        logger.info("Created GameEntry from JSON data.")
+
         return obj
 
     def add_roster(self, home_roster, away_roster):
+        logger.info(f"Adding roster information to GameEntry. Home: '{home_roster}', Away: '{away_roster}'." )
         if self._winner_home_or_away == HomeOrAway.HOME:
             self._winning_roster = home_roster
             self._losing_roster = away_roster

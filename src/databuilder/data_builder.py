@@ -1,36 +1,27 @@
 import json
-import logging
-import sys
 
 import pandas as pd
 from nhlpy import NHLClient
-from pythonjsonlogger import jsonlogger
 
+from loggingconfig.logging_config import LoggingConfig
 from model.game_entry import GameEntry
 from model.game_type import GameType
 from model.naive_player_summarizer import NaivePlayerSummarizer
 from model.seasons import PastSeasons
 from model.team_map import TeamMap
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler("buildData.log")
-formatter = jsonlogger.JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# logging.basicConfig(filename="buildData.log", level=logging.INFO)
-
-logger.info("Starting data fetch")
-
+logger = LoggingConfig.get_logger(__name__)
 
 class DataBuilder:
     
     @staticmethod
     def build():
+        logger.info("Invoking build_games with NaivePlayerSummarizer and NHLClient")
         testSummarizer = NaivePlayerSummarizer()
         client = NHLClient()
         DataBuilder.build_games(testSummarizer, client)
+        logger.info("Call to build_games is complete.")
+
 
     @staticmethod
     def build_games(summarizer, client):
@@ -41,9 +32,9 @@ class DataBuilder:
         games_processed = []
 
         for season in PastSeasons:
-            data = []
             logger.info(f"Start of processing for season '{season}'.")
             
+            data = []
             for team in TeamMap:
                 try:
                     logger.info(f"Start processing for team '{team}' in season '{season}'.")
@@ -62,10 +53,12 @@ class DataBuilder:
                                 logger.info(f"Skipping game '{game["id"]}' which is not a regular season game.")
                                 continue
                             
+                            logger.info("Summarizing rosters.")
                             summary = summarizer.summarize(
                                 box_score["playerByGameStats"]["homeTeam"],
                                 box_score["playerByGameStats"]["awayTeam"]
                             )
+                            logger.info("Rosters summarized.")
                             
                             entry = GameEntry.from_json(box_score)
                             entry.add_roster(*summary)
@@ -81,7 +74,9 @@ class DataBuilder:
                     print("\033[31mException occured. Check logs.\033[0m")
                     logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
                 
+            logger.info("Building DataFrame from game entries.")
             df = pd.DataFrame(data, columns=GameEntry.get_headers())
             df.to_csv(f"{season}.csv", index=False)
+            logger.info(f"DataFrame written to CSV. File: '{season}.csv'.")
                                 
         logger.info("Completed data fetch")

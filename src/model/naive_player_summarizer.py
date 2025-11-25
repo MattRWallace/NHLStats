@@ -1,25 +1,30 @@
+from loggingconfig.logging_config import LoggingConfig
 from model.player_info import GoalieInfo, SkaterInfo
 
+logger = LoggingConfig.get_logger(__name__)
 
 class NaivePlayerSummarizer:
 
     def summarize(self, homeRoster, awayRoster):
+        logger.info("Summarizing home and away rosters.")
         homeSummary = self.summarize_roster(homeRoster)
         awaySummary = self.summarize_roster(awayRoster)
 
         return homeSummary, awaySummary
-    
+
     def summarize_roster(self, roster):
+        logger.info(f"Summarizing roster. Roster: '{roster}'.")
         forwards = self.summarize_skaters(roster["forwards"])
         defense = self.summarize_skaters(roster["defense"])
         goalies = self.summarize_goalies(roster["goalies"])
         return f"{forwards},{defense},{goalies}"
-        
+
     def summarize_skaters(self, players):
+        logger.info(f"Summarizing skaters. Skaters: '{players}'.")
         player_objects = []
         for player in players:
             player_objects.append(SkaterInfo.from_json(player))
-        
+
         count = 0   
         goals = 0
         assists = 0
@@ -34,8 +39,9 @@ class NaivePlayerSummarizer:
         blocked_shots = 0
         giveaways = 0
         takeaways = 0
-        
+
         for player in player_objects:
+            logger.info(f"Adding skater to summary. Goalie: '{player}'.")
             count += 1
             goals += player.goals
             assists += player.assists
@@ -50,7 +56,7 @@ class NaivePlayerSummarizer:
             blocked_shots += player.blocked_shots
             giveaways += player.giveaways
             takeaways += player.takeaways
-        
+
         # TODO: can't just average the FO %, it needs to be weighted    
         summary = SkaterInfo(
             goals,
@@ -67,9 +73,12 @@ class NaivePlayerSummarizer:
             giveaways,
             takeaways
         )
+
+        logger.info(f"Summarized goalies. Summary: '{summary}'.")
         return repr(summary)
-    
+
     def summarize_goalies(self, players):
+        logger.info(f"Summarizing goalies. Goalies: '{players}'.")
         player_objects = []
         for player in players:
             player_objects.append(GoalieInfo.from_json(player))
@@ -93,8 +102,9 @@ class NaivePlayerSummarizer:
         # decision = 0
         shots_against = 0
         saves = 0
-        
+
         for player in player_objects:
+            logger.info(f"Adding goalie to summary. Goalie: '{player}'.")
             count += 1
             es_shots_against += player.es_shots_against
             es_saves += player.es_saves
@@ -114,7 +124,7 @@ class NaivePlayerSummarizer:
             # decision += player.decision
             shots_against += player.shots_against
             saves += player.saves
-            
+
         # TODO: can't just average the FO %, it needs to be weighted
         summary = GoalieInfo(
             es_shots_against,
@@ -136,4 +146,6 @@ class NaivePlayerSummarizer:
             shots_against,
             saves
         )
+
+        logger.info(f"Summarized goalies. Summary: '{summary}'.")
         return repr(summary)

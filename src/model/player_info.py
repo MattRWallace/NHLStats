@@ -1,6 +1,9 @@
 from datetime import timedelta
 
+from loggingconfig.logging_config import LoggingConfig
 from model.utility import Utility
+
+logger = LoggingConfig.get_logger(__name__)
 
 """
 Super class for representing a single player's stats set.
@@ -12,11 +15,15 @@ class PlayerInfo:
             toi):
         self.pim = pim
         self.toi = toi
+        logger.info("Inititializing PlayerInfo.")
 
     @staticmethod
     def parse_toi(json_data):
         toi = Utility.json_value_or_default(json_data, "toi")
-        return timedelta(hours=int(toi[:-3]), minutes=int(toi[-2:])).total_seconds()
+        parsed = timedelta(hours=int(toi[:-3]), minutes=int(toi[-2:])).total_seconds()
+        logger.info(f"Parsed TOI for PlayerInfo. TOI: '{parsed}'.")
+
+        return parsed
 
 """
 Class to represent a single skater's stats set.
@@ -51,9 +58,10 @@ class SkaterInfo(PlayerInfo):
         self.blocked_shots = blocked_shots
         self.giveaways = giveaways
         self.takeaways = takeaways
+        logger.info("Initialized SkaterInfo.")
 
     """
-    Initialize a PlayerInfo object from JSON data
+    Initialize a SkaterInfo object from JSON data
     """   
     @classmethod
     def from_json(cls, json_data):
@@ -74,6 +82,7 @@ class SkaterInfo(PlayerInfo):
             Utility.json_value_or_default(json_data, "giveaways"),
             Utility.json_value_or_default(json_data, "takeaways")
         )
+        logger.info(f"Created SkaterInfo from JSON. SkaterInfo: '{obj}'.")
         
         return obj
     
@@ -135,9 +144,10 @@ class GoalieInfo(PlayerInfo):
         # self.decision = decision
         self.shots_against = shots_against
         self.saves = saves
+        logger.info("Initialized GoalieInfo.")
 
     """
-    Initialize a PlayerInfo object from JSON data
+    Initialize a GoalieInfo object from JSON data
     """   
     @classmethod
     def from_json(cls, json_data):
@@ -167,6 +177,7 @@ class GoalieInfo(PlayerInfo):
             Utility.json_value_or_default(json_data, "shotsAgainst"),
             Utility.json_value_or_default(json_data, "saves")
         )
+        logger.info("Created GoalieInfo from JSON..")
         
         return obj
     
@@ -179,6 +190,7 @@ class GoalieInfo(PlayerInfo):
     def split_save_try_pair(value):
         parts = str(value).split('/')
         parts = [int(part) for part in parts]
+
         return tuple(parts)
     
     """
