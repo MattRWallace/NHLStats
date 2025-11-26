@@ -170,7 +170,8 @@ class GameEntry:
             winner_sog,
             loser_score,
             loser_sog,
-            winning_franchise,
+            #winning_franchise,
+            winner_home_or_away.value,
             winner_home_or_away
             )
         logger.info("Created GameEntry from JSON data.")
