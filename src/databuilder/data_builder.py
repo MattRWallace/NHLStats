@@ -6,8 +6,8 @@ from nhlpy import NHLClient
 from loggingconfig.logging_config import LoggingConfig
 from model.game_entry import GameEntry
 from model.game_type import GameType
-from model.naive_player_summarizer import NaivePlayerSummarizer
-from model.seasons import PastSeasons
+from model.average_player_summarizer import AveragePlayerSummarizer
+from model.seasons import PastSeasons, CurrentSeason
 from model.team_map import TeamMap
 
 logger = LoggingConfig.get_logger(__name__)
@@ -17,18 +17,17 @@ class DataBuilder:
     @staticmethod
     def build():
         logger.info("Invoking build_games with NaivePlayerSummarizer and NHLClient")
-        testSummarizer = NaivePlayerSummarizer()
+        summarizer = AveragePlayerSummarizer()
         client = NHLClient()
-        DataBuilder.build_games(testSummarizer, client)
+        DataBuilder.build_past_seasons(summarizer, client)
+        DataBuilder.build_current_season(summarizer, client)
         logger.info("Call to build_games is complete.")
 
-
     @staticmethod
-    def build_games(summarizer, client):
+    def build_past_seasons(summarizer, client):
+        logger.info("Start building past seasons.")
         
-        """
-        Avoid multiple rows for a single game by recoding the IDs for games already processed.
-        """
+        # Avoid multiple rows for a single game by recoding the IDs for games already processed.
         games_processed = []
 
         for season in PastSeasons:
@@ -42,34 +41,8 @@ class DataBuilder:
                     games = client.schedule.team_season_schedule(team, season)["games"]
                     logger.info(f"Found '{len(games)}' games for team '{team}' in season '{season}'.")
                     
-                    for game in games:
-                        try:
-                            if game["id"] in games_processed:
-                                logger.info(f"Skipping game '{game["id"]}' which was already processed.")
-                                continue
-                            games_processed.append(game["id"])
-                            box_score = client.game_center.boxscore(game["id"])
-                            if box_score["gameType"] != GameType.RegularSeason.value:
-                                logger.info(f"Skipping game '{game["id"]}' which is not a regular season game.")
-                                continue
-                            
-                            logger.info("Summarizing rosters.")
-                            summary = summarizer.summarize(
-                                box_score["playerByGameStats"]["homeTeam"],
-                                box_score["playerByGameStats"]["awayTeam"]
-                            )
-                            logger.info("Rosters summarized.")
-                            
-                            entry = GameEntry.from_json(box_score)
-                            entry.add_roster(*summary)
-                            
-                            logger.info(f"Adding game entry to data set: '{entry}'.")
-                            data.append(repr(entry).split(','))
-
-                        except Exception as e:
-                            print("\033[31mException occured. Check logs.\033[0m")
-                            logger.exception(f"Exception processing box_score query. Exception: '{str(e)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
-
+                    DataBuilder.process_team(games, games_processed, client, data, summarizer)
+                    
                 except Exception as e:
                     print("\033[31mException occured. Check logs.\033[0m")
                     logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
@@ -79,4 +52,69 @@ class DataBuilder:
             df.to_csv(f"{season}.csv", index=False)
             logger.info(f"DataFrame written to CSV. File: '{season}.csv'.")
                                 
-        logger.info("Completed data fetch")
+        logger.info("Completed building previous seasons.")
+    
+    @staticmethod
+    def build_current_season(summarizer, client):
+        # TODO: We should short-circuit and skip trying to prcess future games already in the system.
+        # Avoid multiple rows for a single game by recoding the IDs for games already processed.
+        games_processed = []
+        data = []
+        
+        for team in TeamMap:
+            try:
+                logger.info(f"Start processing for team '{team}' in season '{CurrentSeason}'.")
+                
+                games = client.schedule.team_season_schedule(team, CurrentSeason)["games"]
+                logger.info(f"Found '{len(games)}' games for team '{team}' in season '{CurrentSeason}'.")
+                
+                DataBuilder.process_team(games, games_processed, client, data, summarizer)
+                
+            except Exception as e:
+                print("\033[31mException occured. Check logs.\033[0m")
+                logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
+            
+        logger.info("Building DataFrame from game entries.")
+        df = pd.DataFrame(data, columns=GameEntry.get_headers())
+        df.to_csv("currentSeason.csv", index=False)
+        logger.info("DataFrame written to CSV. File: 'currentSeason.csv'.")
+        logger.info("Current season data build complete.")
+    
+    @staticmethod
+    def process_team(games, games_processed, client, data, summarizer):
+        try:
+            for game in games:
+                try:
+                    if game["id"] in games_processed:
+                        logger.info(f"Skipping game '{game["id"]}' which was already processed.")
+                        continue
+                    games_processed.append(game["id"])
+                    box_score = client.game_center.boxscore(game["id"])
+                    if box_score["gameType"] != GameType.RegularSeason.value:
+                        logger.info(f"Skipping game '{game["id"]}' which is not a regular season game.")
+                        continue
+                    
+                    data.append(DataBuilder.process_game(game, box_score, summarizer))
+
+                except Exception as e:
+                    print("\033[31mException occured. Check logs.\033[0m")
+                    logger.exception(f"Exception processing box_score query. Exception: '{str(e)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
+
+        except Exception as e:
+            print("\033[31mException occured. Check logs.\033[0m")
+            logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
+
+    @staticmethod
+    def process_game(game, box_score, summarizer ):
+        logger.info("Summarizing rosters.")
+        summary = summarizer.summarize(
+            box_score["playerByGameStats"]["homeTeam"],
+            box_score["playerByGameStats"]["awayTeam"]
+        )
+        logger.info("Rosters summarized.")
+        
+        entry = GameEntry.from_json(box_score)
+        entry.add_roster(*summary)
+        
+        logger.info(f"Adding game entry to data set: '{entry}'.")
+        return repr(entry).split(',')

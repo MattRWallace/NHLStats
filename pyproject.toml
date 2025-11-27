@@ -17,7 +17,8 @@ packages = [
     "src/databuilder",
     "src/logging",
     "src/model", 
-    "src/predictor"
+    "src/predictor",
+    "src/train"
 ]
 
 [tool.hatch.build.targets.wheel.sources]

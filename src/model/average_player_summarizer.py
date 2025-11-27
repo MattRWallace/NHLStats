@@ -3,7 +3,7 @@ from model.player_info import GoalieInfo, SkaterInfo
 
 logger = LoggingConfig.get_logger(__name__)
 
-class NaivePlayerSummarizer:
+class AveragePlayerSummarizer:
 
     def summarize(self, homeRoster, awayRoster):
         logger.info("Summarizing home and away rosters.")
