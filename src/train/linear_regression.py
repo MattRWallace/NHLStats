@@ -10,7 +10,7 @@ from model.seasons import PastSeasons
 class Trainer:
 
     def train():
-        # Dump all lines when printing pandas data
+        # Dump all lines when printing pandas data. TODO: Delete this.
         # pd.set_option("display.max_rows", None, "display.max_columns", None)
 
         files = [x for x in map("{0}.csv".format, PastSeasons)]

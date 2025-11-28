@@ -27,6 +27,8 @@ class GameEntry:
 
     """
     Labels for the dataset columns represented as a list of strings.
+    
+    TODO: Moving this to the summarizer so fields can change based on the summary logic.
     """
     @classmethod
     def get_headers(cls):

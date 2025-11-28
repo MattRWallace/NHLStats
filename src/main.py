@@ -17,8 +17,11 @@ def train():
     Trainer.train()
 
 @app.command()
-def predict():
-    Predictor.predict()
+def predict(
+    model: str,
+    date: str = None
+):
+    Predictor.predict(model, date)
 
 if __name__ == "__main__":
     app()
