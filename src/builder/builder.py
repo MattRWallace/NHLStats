@@ -4,58 +4,88 @@ import pandas as pd
 from nhlpy import NHLClient
 
 from loggingconfig.logging_config import LoggingConfig
+from model.average_player_summarizer import AveragePlayerSummarizer
 from model.game_entry import GameEntry
 from model.game_type import GameType
-from model.average_player_summarizer import AveragePlayerSummarizer
-from model.seasons import PastSeasons, CurrentSeason
+from model.seasons import CurrentSeason, PastSeasons
+from model.summarizers import Summarizers
 from model.team_map import TeamMap
 
 logger = LoggingConfig.get_logger(__name__)
 
-class DataBuilder:
+class Builder:
     
     @staticmethod
-    def build():
-        logger.info("Invoking build_games with NaivePlayerSummarizer and NHLClient")
-        summarizer = AveragePlayerSummarizer()
+    def build(
+        seasons,
+        summarizer_type,
+        all_seasons: bool = False,
+        update: bool = False
+    ):
+        summarizer = Summarizers.get_summarizer(summarizer_type)
         client = NHLClient()
-        DataBuilder.build_past_seasons(summarizer, client)
-        DataBuilder.build_current_season(summarizer, client)
+
+        if all_seasons:
+            Builder.build_past_seasons(summarizer, client, update)
+            Builder.build_current_season(summarizer, client, update)
+        elif seasons is not None:
+            Builder.build_seasons(seasons, summarizer, client, update)
+        else:
+            logger.error("Invalid season specification, cannot build data set.")
+
+        Builder.build_seasons(seasons, summarizer, client, update)
         logger.info("Call to build_games is complete.")
 
     @staticmethod
-    def build_past_seasons(summarizer, client):
-        logger.info("Start building past seasons.")
+    def build_seasons(
+        seasons: PastSeasons,
+        summarizer,
+        client,
+        update
+    ):
+        logger.info("Start building seasons.")
         
         # Avoid multiple rows for a single game by recoding the IDs for games already processed.
         games_processed = []
 
-        for season in PastSeasons:
-            logger.info(f"Start of processing for season '{season}'.")
+        for season in seasons:
+            logger.info(f"Start of processing for season '{season.value}'.")
+
+            # TODO: If not update and file exists, then continue
             
             data = []
             for team in TeamMap:
                 try:
-                    logger.info(f"Start processing for team '{team}' in season '{season}'.")
+                    logger.info(f"Start processing for team '{team}' in season '{season.value}'.")
                     
-                    games = client.schedule.team_season_schedule(team, season)["games"]
-                    logger.info(f"Found '{len(games)}' games for team '{team}' in season '{season}'.")
+                    games = client.schedule.team_season_schedule(team, season.value)["games"]
+                    logger.info(f"Found '{len(games)}' games for team '{team}' in season '{season.value}'.")
                     
-                    DataBuilder.process_team(games, games_processed, client, data, summarizer)
+                    Builder.process_team(games, games_processed, client, data, summarizer)
                     
                 except Exception as e:
                     print("\033[31mException occured. Check logs.\033[0m")
-                    logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
+                    logger.exception(
+                        f"Exception processing team_season_schedule query. "
+                        f"Games: '{json.dumps(games, indent=4)}',"
+                        f"Exception: '{str(e)}'.",
+                        stack_info=True)
                 
             logger.info("Building DataFrame from game entries.")
-            df = pd.DataFrame(data, columns=GameEntry.get_headers())
-            df.to_csv(f"{season}.csv", index=False)
-            logger.info(f"DataFrame written to CSV. File: '{season}.csv'.")
+            df = pd.DataFrame(data, columns=summarizer.get_headers())
+            df.to_csv(f"{season.value}.csv", index=False)
+            logger.info(f"DataFrame written to CSV. File: '{season.value}.csv'.")
                                 
+        logger.info("Completed building previous seasons.")
+
+    @staticmethod
+    def build_past_seasons(summarizer, client, update):
+        logger.info("Start building past seasons.")
+        Builder.build_seasons(PastSeasons.items(), summarizer, client, update)
         logger.info("Completed building previous seasons.")
     
     @staticmethod
-    def build_current_season(summarizer, client):
+    def build_current_season(summarizer, client, update):
         # TODO: We should short-circuit and skip trying to prcess future games already in the system.
         # Avoid multiple rows for a single game by recoding the IDs for games already processed.
         games_processed = []
@@ -68,14 +98,18 @@ class DataBuilder:
                 games = client.schedule.team_season_schedule(team, CurrentSeason)["games"]
                 logger.info(f"Found '{len(games)}' games for team '{team}' in season '{CurrentSeason}'.")
                 
-                DataBuilder.process_team(games, games_processed, client, data, summarizer)
+                Builder.process_team(games, games_processed, client, data, summarizer)
                 
             except Exception as e:
                 print("\033[31mException occured. Check logs.\033[0m")
-                logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
+                logger.exception(
+                    f"Exception processing team_season_schedule query. "
+                    f"Games: '{json.dumps(games, indent=4)}', "
+                    f"Exception: '{str(e)}'.",
+                    stack_info=True)
             
         logger.info("Building DataFrame from game entries.")
-        df = pd.DataFrame(data, columns=GameEntry.get_headers())
+        df = pd.DataFrame(data, columns=summarizer.get_headers())
         df.to_csv("currentSeason.csv", index=False)
         logger.info("DataFrame written to CSV. File: 'currentSeason.csv'.")
         logger.info("Current season data build complete.")
@@ -94,7 +128,7 @@ class DataBuilder:
                         logger.info(f"Skipping game '{game["id"]}' which is not a regular season game.")
                         continue
                     
-                    data.append(DataBuilder.process_game(game, box_score, summarizer))
+                    data.append(Builder.process_game(game, box_score, summarizer))
 
                 except Exception as e:
                     print("\033[31mException occured. Check logs.\033[0m")
