@@ -3,7 +3,7 @@ from typing import List, Optional
 import typer
 from typing_extensions import Annotated
 
-from databuilder.data_builder import DataBuilder
+from builder.data_builder import DataBuilder
 from model.algorithms import Algorithms
 from predictor.predictor import Predictor
 from trainer.trainer import Trainer

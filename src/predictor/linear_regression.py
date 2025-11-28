@@ -4,7 +4,7 @@ import dateutil.parser as parser
 import numpy as np
 import pandas as pd
 
-from databuilder.data_builder import DataBuilder
+from builder.data_builder import DataBuilder
 from loggingconfig.logging_config import LoggingConfig
 from model.home_or_away import HomeOrAway
 from model.utility import Utility
