@@ -7,7 +7,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 
 from model.seasons import PastSeasons
 
-class LinearRegression:
+class Trainer:
 
     def train():
         # Dump all lines when printing pandas data
