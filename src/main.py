@@ -3,8 +3,10 @@ from typing import List, Optional
 import typer
 from typing_extensions import Annotated
 
-from builder.data_builder import DataBuilder
+from builder.builder import Builder
 from model.algorithms import Algorithms
+from model.seasons import PastSeasons
+from model.summarizers import Summarizers
 from predictor.predictor import Predictor
 from trainer.trainer import Trainer
 
@@ -12,11 +14,30 @@ app = typer.Typer()
 
 @app.command()
 def build(
+    season: Annotated[Optional[List[PastSeasons]], typer.Option(
+        help=(
+            "Specify the seasons to include. If '--all-seasons' is specified, "
+            "this option will be ignored."
+        )
+    )] = None,
+    summarizer: Annotated[Summarizers, typer.Option(
+        help="Specify the algorithm to use to summarize roster strength."
+    )] = None,
+    all_seasons: Annotated[bool, typer.Option(
+        help=(
+            "Indicates that all seasons should be included in the data set. "
+            "This option superscedes the '--season' option. See '--season' hints "
+            "for list of seasons included."
+        )
+    )] = False,
+    update: Annotated[bool, typer.Option(
+        help="Allow overwriting of existing file."
+    )] = False
 ):
     """
     Build the data set.
     """
-    DataBuilder.build()
+    Builder.build(season, summarizer, all_seasons, update)
 
 @app.command()
 def train(
@@ -25,15 +46,15 @@ def train(
         case_sensitive=False,
         prompt=True
     )],
-    output: Annotated[str, typer.Option(
-        help="Specify the file name for the serialized model."
-    )],
     data_file: Annotated[Optional[List[str]], typer.Option(
         help="Specify one or more data files which make up the data set to train on."
     )],
+    output: Annotated[str, typer.Option(
+        help="Specify the file name for the serialized model."
+    )]
 ):
     """
-    Train a model
+    Train a model using the specified ML algorithm and data.
     """
     Trainer.train(algorithm, output, data_file)
 
@@ -51,19 +72,19 @@ def predict(
     date: Annotated[str, typer.Option(
         help=(
             "Specify a date, all games for this date will be retrieved. This "
-            "option superscedes the 'date_range' option."
+            "option superscedes the '--date-range' option."
         )
     )] = None,
     date_range: Annotated[str, typer.Option(
         help=(
             "Specify a range of dates, all games occuring during this range "
-            "will be retrieved.  if a date is supplied, this option will be "
+            "will be retrieved.  If '--date' is specified, this option will be "
             "ignored."
-            "\n\n THIS IS NOT IMPLEMENTED YET."
+            "\033[91m THIS IS NOT IMPLEMENTED YET.\033[91m"
             #TODO: Remove the not implemented disclaimer when appropriate
         )
     )] = None,
-    summarizer: Annotated[str, typer.Option(
+    summarizer: Annotated[Summarizers, typer.Option(
         help="Specify the algorithm to use to summarize roster strength."
     )] = None
 ):

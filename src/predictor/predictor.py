@@ -3,6 +3,7 @@ from nhlpy.nhl_client import NHLClient
 from loggingconfig.logging_config import LoggingConfig
 from model.algorithms import Algorithms
 from model.average_player_summarizer import AveragePlayerSummarizer
+from model.summarizers import Summarizers
 from predictor.linear_regression import PredictLinearRegression
 
 logger = LoggingConfig.get_logger(__name__)
@@ -17,12 +18,7 @@ class Predictor:
         date: str = None,
         date_range: str = None
     ):
-        # TODO: Need to actually switch on summarizer type.
-        if summarizer_type is None:
-            summarizer = AveragePlayerSummarizer()
-        else:
-            summarizer = AveragePlayerSummarizer()
-
+        summarizer = Summarizers.get_summarizer(summarizer_type)
         client = NHLClient()
 
         match algorithm:

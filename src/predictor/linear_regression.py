@@ -4,7 +4,7 @@ import dateutil.parser as parser
 import numpy as np
 import pandas as pd
 
-from builder.data_builder import DataBuilder
+from builder.builder import Builder
 from loggingconfig.logging_config import LoggingConfig
 from model.home_or_away import HomeOrAway
 from model.utility import Utility
@@ -39,7 +39,7 @@ class PredictLinearRegression:
         for game in games:
             logger.info(f"Processing game. ID: '{game["id"]}'.")
             box_score = client.game_center.boxscore(game["id"])
-            data.append(DataBuilder.process_game(game, box_score, summarizer))
+            data.append(Builder.process_game(game, box_score, summarizer))
             
         df = pd.DataFrame(data)
         df.columns = summarizer.get_headers()
