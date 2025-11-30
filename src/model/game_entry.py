@@ -70,6 +70,9 @@ class GameEntry:
 
     """
     serialize the game data into a row for the CSV file
+    
+    TODO: using repr and returning a string instead of a collection is a remnant of a 
+    previous design.  Refactor/redesign this.
     """
     def __repr__(self):
         return (

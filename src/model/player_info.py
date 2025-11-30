@@ -20,6 +20,9 @@ class PlayerInfo:
     @staticmethod
     def parse_toi(json_data):
         toi = Utility.json_value_or_default(json_data, "toi")
+        # TODO: additional validation here? Could API provide a non-zero value without minutes?
+        if toi == 0:
+            return 0
         parsed = timedelta(hours=int(toi[:-3]), minutes=int(toi[-2:])).total_seconds()
         logger.info(f"Parsed TOI for PlayerInfo. TOI: '{parsed}'.")
 

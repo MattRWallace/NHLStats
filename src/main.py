@@ -80,13 +80,23 @@ def predict(
             "Specify a range of dates, all games occuring during this range "
             "will be retrieved.  If '--date' is specified, this option will be "
             "ignored."
+            "\n\nParsing of date range is performed by daterangeparser. See "
+            "documentation for supported formats: "
+            "https://daterangeparser.readthedocs.io/en/latest/\n"
             "\033[91m THIS IS NOT IMPLEMENTED YET.\033[91m"
             #TODO: Remove the not implemented disclaimer when appropriate
         )
     )] = None,
     summarizer: Annotated[Summarizers, typer.Option(
         help="Specify the algorithm to use to summarize roster strength."
-    )] = None
+    )] = None,
+    use_season_totals: Annotated[bool, typer.Option(
+        help=(
+            "Specify to use only the current season stats for prediction. By default the "
+            "player's career stats are used.  Once the season has progressed enough, you "
+            "may get more accuate results using current season stats."
+        )
+    )] = False
 ):
     """
     Predict the outcome of a game(s) given the specified model.

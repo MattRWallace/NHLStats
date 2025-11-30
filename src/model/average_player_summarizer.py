@@ -1,3 +1,8 @@
+import json
+import sys
+
+from nhlpy import NHLClient
+
 from loggingconfig.logging_config import LoggingConfig
 from model.player_info import GoalieInfo, SkaterInfo
 
@@ -11,6 +16,58 @@ class AveragePlayerSummarizer:
         awaySummary = self.summarize_roster(awayRoster)
 
         return homeSummary, awaySummary
+
+    def summarize_historical(self, client, homeRoster, awayRoster, use_season_totals):
+        logger.info("Summarizing home and away rosters.")
+        homeSummary = self.summarize_roster(
+            AveragePlayerSummarizer.historical_transform(client, homeRoster, use_season_totals)
+            )
+        awaySummary = self.summarize_roster(
+            AveragePlayerSummarizer.historical_transform(client, awayRoster, use_season_totals)
+            )
+
+        return homeSummary, awaySummary
+
+    def historical_transform(client, roster, use_season_totals):
+        # TODO: Actually implement this
+        logger.info("Summarizing home and away rosters with historical data.")
+        
+        for player in roster["forwards"]:
+            AveragePlayerSummarizer.get_historical_stats_for_player(client, player["playerId"], use_season_totals)
+        for player in roster["defense"]:
+            AveragePlayerSummarizer.get_historical_stats_for_player(client, player["playerId"], use_season_totals)
+        for player in roster["goalies"]:
+            AveragePlayerSummarizer.get_historical_stats_for_player(client, player["playerId"], use_season_totals)
+        
+        
+        print(json.dumps(roster, indent=4))
+        return roster
+    
+    def get_historical_stats_for_player(client, player_id, use_season_totals):
+        key = "seasonTotals" if use_season_totals else "careerTotals"
+        stats = client.stats.player_career_stats(player_id)
+        stats = stats[key]["regularSeason"] # TODO: Do season stats have the exact same format?
+        total_games = stats["gamesPlayed"]
+        # TODO: Need to ensure that historical data has parity with statistical factors
+        result = {
+            "playerId": player_id,
+            "goals": stats["goals"]/total_games,
+            "assists": stats["assists"]/total_games,
+            "points": stats["points"]/total_games,
+            "plusMinus": stats["plusMinus"]/total_games,
+            "pim": stats["pim"]/total_games,
+            #"hits": stats[""],
+            "powerPlayGoals": stats["powerPlayGoals"]/total_games,
+            "sog": stats["shots"]/total_games,
+            "faceoffWinningPctg": stats["faceoffWinningPctg"],
+            "toi": stats["avgToi"],
+            #"blockedShots": stats[""],
+            #"shifts": 17,
+            #"giveaways": 1,
+            #"takeaways": 0
+        }
+        print(json.dumps(result, indent=4))
+        sys.exit(0)
 
     def summarize_roster(self, roster):
         logger.info(f"Summarizing roster. Roster: '{roster}'.")
@@ -149,7 +206,7 @@ class AveragePlayerSummarizer:
 
         logger.info(f"Summarized goalies. Summary: '{summary}'.")
         return repr(summary)
-    
+
     """
     Labels for the dataset columns represented as a list of strings.
     """
@@ -240,7 +297,7 @@ class AveragePlayerSummarizer:
             "awayGoaliePowerPlayGoalsAgainst",
             "awayGoalieShortHandedGoalsAgainst",
             "awayGoaliePIM",
-            "awayGoalieGoalsAgainst",
+            "awayGoalieGoalsAgainst"
             "awayGoalieTOI",
             "awayGoalieShotsAgainst",
             "awayGoalieSaves",

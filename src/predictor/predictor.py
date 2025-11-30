@@ -1,3 +1,4 @@
+from daterangeparser import parse as drp
 from nhlpy.nhl_client import NHLClient
 
 from loggingconfig.logging_config import LoggingConfig
@@ -16,10 +17,13 @@ class Predictor:
         model_file_name: str,
         summarizer_type: str = None,
         date: str = None,
-        date_range: str = None
+        date_range: str = None,
+        use_season_totals: bool = False
     ):
         summarizer = Summarizers.get_summarizer(summarizer_type)
         client = NHLClient()
+        if date_range is not None:
+            date_range_start, date_range_end = drp(date_range)
 
         match algorithm:
             case Algorithms.linear_regression:
@@ -28,6 +32,9 @@ class Predictor:
                     client,
                     model_file_name,
                     date,
-                    date_range)
+                    date_range_start,
+                    date_range_end,
+                    use_season_totals
+                    )
             case _:
                 logger.error("Invalid algorithm provided to predict.")

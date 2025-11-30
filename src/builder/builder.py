@@ -128,7 +128,7 @@ class Builder:
                         logger.info(f"Skipping game '{game["id"]}' which is not a regular season game.")
                         continue
                     
-                    data.append(Builder.process_game(game, box_score, summarizer))
+                    data.append(Builder.process_game(box_score, summarizer))
 
                 except Exception as e:
                     print("\033[31mException occured. Check logs.\033[0m")
@@ -139,8 +139,11 @@ class Builder:
             logger.exception(f"Exception processing team_season_schedule query. Exception: '{str(e)}', games: '{json.dumps(games, indent=4)}', box_score: '{json.dumps(box_score, indent=4)}'.", stack_info=True)
 
     @staticmethod
-    def process_game(game, box_score, summarizer ):
+    def process_game(box_score, summarizer ):
         logger.info("Summarizing rosters.")
+        if "playerByGameStats" not in box_score:
+            logger.warning("Roster not published yet")
+            return None
         summary = summarizer.summarize(
             box_score["playerByGameStats"]["homeTeam"],
             box_score["playerByGameStats"]["awayTeam"]
@@ -150,5 +153,26 @@ class Builder:
         entry = GameEntry.from_json(box_score)
         entry.add_roster(*summary)
         
+        logger.info(f"Adding game entry to data set: '{entry}'.")
+        return repr(entry).split(',')
+
+    @staticmethod
+    def process_game_historical(client, box_score, summarizer, use_season_totals):
+        logger.info("Summarizing rosters with historical data.")
+        if "playerByGameStats" not in box_score:
+            logger.warning("Roster not published yet")
+            return None
+
+        summary = summarizer.summarize_historical(
+            client,
+            box_score["playerByGameStats"]["homeTeam"],
+            box_score["playerByGameStats"]["awayTeam"],
+            use_season_totals
+        )
+        logger.info("Rosters summarized.")
+
+        entry = GameEntry.from_json(box_score)
+        entry.add_roster(*summary)
+
         logger.info(f"Adding game entry to data set: '{entry}'.")
         return repr(entry).split(',')
