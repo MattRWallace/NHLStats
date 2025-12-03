@@ -11,8 +11,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "predict --algorithm linearregression --model myModel.pkl --date 2025-12-01 --summarizer average"
-            //"args": "build --all-seasons --summarizer average"
+            // "args": "predict --algorithm linearregression --model myModel.pkl --date 2025-12-01 --summarizer average"
+            "args": "build --season 20222023 --summarizer average --experimental"
         }
     ]
 }

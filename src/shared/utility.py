@@ -2,11 +2,17 @@ class Utility:
     """
     Check the json_data for a value associated with the provided key.  If no
     such key exists, return the default value instead.
+
+    TODO: Use dictionary unpacking to manage multiple indexing.
+    TODO: Update all the dictionary indexing with this method.
     """
     @staticmethod
-    def json_value_or_default(json_data, key, default=0):
+    def json_value_or_default(json_data, *keys, default=0):
         try:
-            return json_data[key]
+            value = json_data
+            for key in keys:
+                value = value[key]
+            return value
         except KeyError:
             # TODO: Log
             return default
@@ -51,3 +57,20 @@ class Utility:
             if drawLine[y]:
                 print(gridLine)
         print("└"+"┴".join(lines)+"┘")
+
+    @staticmethod
+    def get_db_name():
+        # TODO: implement
+        return "fake_filename_implement_me.sqlite"
+    
+    """
+    Some goalies stats are represented as a save/try pair.  For example, see
+    shots against stats that are shown like 21/27 where 21 is the number of
+    saves and 27 is the total attempts.
+    """
+    @staticmethod
+    def split_save_try_pair(value):
+        parts = str(value).split('/')
+        parts = [int(part) for part in parts]
+
+        return tuple(parts)

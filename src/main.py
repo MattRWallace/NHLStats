@@ -4,18 +4,16 @@ from typing import List, Optional
 import typer
 from typing_extensions import Annotated
 
-from builder.builder import Builder
 from model.algorithms import Algorithms
 from model.seasons import PastSeasons
 from model.summarizers import Summarizers
-from predictor.predictor import Predictor
 from shared.execution_context import ExecutionContext
-from trainer.trainer import Trainer
 
 app = typer.Typer()
 
 _summarizer = Annotated[Summarizers, typer.Option(
-        help="Specify the algorithm to use to summarize roster strength."
+        help="Specify the algorithm to use to summarize roster strength.",
+        prompt=True
     )]
 
 _algorithm = Annotated[Algorithms, typer.Option(
@@ -51,14 +49,19 @@ def build(
             "for list of seasons included."
         )
     )] = False,
-    update: _update = False
+    update: _update = False,
+    experimental: Annotated[bool, typer.Option()] = False
 ):
     """
     Build the data set.
     """
     context = ExecutionContext()
     context.allow_update = update
-    Builder.build(season, summarizer, all_seasons)
+    context.experimental = experimental
+    context.summarizer = summarizer
+
+    from builder.builder import Builder
+    Builder.build(season, all_seasons)
 
 @app.command()
 def train(
@@ -74,6 +77,7 @@ def train(
     """
     Train a model using the specified ML algorithm and data.
     """
+    from trainer.trainer import Trainer
     Trainer.train(algorithm, output, data_file)
 
 @app.command()
@@ -113,6 +117,7 @@ def predict(
     """
     Predict the outcome of a game(s) given the specified model.
     """
+    from predictor.predictor import Predictor
     Predictor.predict(algorithm, model, summarizer, date, date_range)
 
 if __name__ == "__main__":

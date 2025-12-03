@@ -1,5 +1,11 @@
+from pathlib import Path
+
 import typer
 from nhlpy import NHLClient
+from sqlitedict import SqliteDict
+
+import model.summarizers
+from shared.utility import Utility
 
 
 class ExecutionContext:
@@ -16,7 +22,21 @@ class ExecutionContext:
         if getattr(self, '_client', None) is None:
             self._client = NHLClient()
         return self._client
+    
+    @property
+    def summarizer(self):
+        return self._summarizer
 
+    @summarizer.setter
+    def summarizer(self, value):
+        self._summarizer = model.summarizers.Summarizers.get_summarizer(value)
+
+    @property
+    def database(self):
+        if getattr(self, '_database', None) is None:
+            self._database = SqliteDict(Utility.get_db_name())
+        return self._database
+    
     @property
     def is_playoffs(self):
         return self._is_playoffs
@@ -34,15 +54,23 @@ class ExecutionContext:
         self._allow_update = value
 
     @property
-    def file_path(self):
+    def file_path(self) -> Path:
         if self._file_path is None:
             typer.get_app_dir(ExecutionContext._app_name)
         return self._file_path
 
     @file_path.setter
-    def file_path(self, value: str):
+    def file_path(self, value: Path):
         if ExecutionContext._file_path_set:
             # TODO: shouldn't use general excdeption
             raise Exception("File path already set.")
         self._file_path = value
         ExecutionContext._file_path_set = True
+    
+    @property
+    def experimental(self) -> bool:
+        return self._experimental
+    
+    @experimental.setter
+    def experimental(self, value: bool):
+        self._experimental = value

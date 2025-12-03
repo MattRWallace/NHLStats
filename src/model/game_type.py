@@ -9,5 +9,11 @@ from here:
 https://github.com/Zmalski/NHL-API-Reference/issues/23#issuecomment-2492925102
 """
 class GameType(Enum):
+    Preseason = 1
     RegularSeason = 2
     Playoff = 3
+
+SupportedGameTypes = [
+    GameType.RegularSeason,
+    GameType.Playoff
+]
