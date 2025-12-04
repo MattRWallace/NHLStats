@@ -9,7 +9,7 @@ from shared.utility import Utility
 
 class ExecutionContext:
     _app_name = "nhlpredictor"
-    _file_path_set = False
+    _app_dir_set = False
     
     def __new__(cls):
         if not getattr(cls, '_instance', None):
@@ -53,23 +53,15 @@ class ExecutionContext:
         self._allow_update = value
 
     @property
-    def file_path(self) -> Path:
-        if self._file_path is None:
+    def app_dir(self) -> Path:
+        if self._app_dir is None:
             typer.get_app_dir(ExecutionContext._app_name)
-        return self._file_path
+        return self._app_dir
 
-    @file_path.setter
-    def file_path(self, value: Path):
-        if ExecutionContext._file_path_set:
+    @app_dir.setter
+    def app_dir(self, value: Path):
+        if ExecutionContext._app_dir_set:
             # TODO: shouldn't use general excdeption
             raise Exception("File path already set.")
-        self._file_path = value
-        ExecutionContext._file_path_set = True
-    
-    @property
-    def experimental(self) -> bool:
-        return self._experimental
-    
-    @experimental.setter
-    def experimental(self, value: bool):
-        self._experimental = value
+        self._app_dir = value
+        ExecutionContext._app_dir_set = True

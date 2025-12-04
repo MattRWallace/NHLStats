@@ -1,7 +1,8 @@
 import json
+from datetime import datetime, timezone
 from typing import List
 
-from sqlitedict import SqliteDict
+from ansimarkup import ansiprint as print
 
 import shared.execution_context
 from model.game_state import GameState, GameStatesForDataset
@@ -34,21 +35,68 @@ class Builder:
     @staticmethod
     def report():
         logger.info("Start dataset report.")
-        # data = utl.get_db_connections(
-        #     DB.players_table_name,
-        #     DB.skater_stats_table_name,
-        #     DB.goalie_stats_table_name,
-        #     DB.games_table_name,
-        #     read_only=True
-        # )
-        db = SqliteDict(utl.get_db_name)
-        print(db.get_tablenames)
+        data = utl.get_db_connections(
+            DB.players_table_name,
+            DB.skater_stats_table_name,
+            DB.goalie_stats_table_name,
+            DB.games_table_name,
+            DB.meta_table_name,
+            read_only=True
+        )
+        games_db = data[DB.games_table_name]
+        players_db = data[DB.players_table_name]
+        skaters_db = data[DB.skater_stats_table_name]
+        goalies_db = data[DB.goalie_stats_table_name]
+        meta_db = data[DB.meta_table_name]
 
         # Summarize the games table
-        summary_table = [["Games"]]
+        games_summary_table = []
+        games_summary_table.append(["Num. Rows", str(len(games_db))])
+        games_summary_table.append([
+            "Last Updated",
+            str(meta_db[DB.games_table_name][Keys.last_update])
+        ])
 
-        utl.print_table(summary_table)
+        # Summarize the players table
+        players_summary_table = []
+        players_summary_table.append(["Num. Rows", str(len(players_db))])
+        players_summary_table.append([
+            "Last Updated",
+            str(meta_db[DB.players_table_name][Keys.last_update])
+        ])
 
+        # Summarize the skaters table
+        skaters_summary_table = []
+        skaters_summary_table.append(["Num. Rows", str(len(skaters_db))])
+        skaters_summary_table.append([
+            "Last Updated",
+            str(meta_db[DB.skater_stats_table_name][Keys.last_update])
+        ])
+
+        # Summarize the goalies table
+        goalies_summary_table = []
+        goalies_summary_table.append(["Num. Rows", str(len(goalies_db))])
+        goalies_summary_table.append([
+            "Last Updated",
+            str(meta_db[DB.goalie_stats_table_name][Keys.last_update])
+        ])
+        
+        # Print all the tables
+        print("\n<b><green>GAMES:</green></b>")
+        print("<blue>The total number of historical games processed.</blue>")
+        utl.print_table(games_summary_table)
+        print("\n<b><green>PLAYERS:</green></b>")
+        print("<blue>The number of unique players encountered during processing.</blue>")
+        utl.print_table(players_summary_table)
+        print("\n<b><green>SKATERS:</green></b>")
+        print("<blue>The number of skater stat records.  This should be appx. <num_games> * 36</blue>")
+        utl.print_table(skaters_summary_table)
+        print("\n<b><green>GOALIES:</green></b>")
+        print("<blue>The number of goalie stat records.  This should be appx. <num_games> * 4</blue>")
+        utl.print_table(goalies_summary_table)
+        print("\n")
+        print(f"<magenta>Note: Current time UTC is: {datetime.now(timezone.utc)}</magenta>")
+        print("\n")
 
     @staticmethod
     def build_seasons(
@@ -60,12 +108,12 @@ class Builder:
             DB.skater_stats_table_name,
             DB.goalie_stats_table_name,
             DB.games_table_name,
+            DB.meta_table_name,
             update_db=execution_context.allow_update
         )
         
         for season in seasons:
             logger.info(f"Start of processing for season '{season}'.")
-
             for team in TeamMap:
                 logger.info(f"Start processing for team '{team}' in season '{season}'.")
                 try:
@@ -81,20 +129,12 @@ class Builder:
                         f"Exception: '{str(e)}'.",
                         stack_info=True)
 
-        # TODO: Factor this out into a method
-        skaters_db = data[DB.skater_stats_table_name]
-        goalies_db = data[DB.goalie_stats_table_name]
-        player_ids = set()
-        for record in skaters_db:
-            player_ids.add(skaters_db[record][Keys.player_id])
-        for record in goalies_db:
-            player_ids.add(goalies_db[record][Keys.player_id])
-        
-        Builder.process_players(player_ids, data)
-
+        Builder.process_players(Builder.get_all_playerids(data), data)
+    
     @staticmethod
     def process_team_games(games_raw, data):
         games_db = data[DB.games_table_name]
+        meta_db = data[DB.meta_table_name]
 
         try:
             for game in games_raw:
@@ -118,7 +158,6 @@ class Builder:
                             f"Skipping game '{game[Keys.id]}' which is not a "
                             f"supported game state. State: '{game[Keys.game_state]}'."
                         )
-
                     # game ID is the primary key for the games DB
                     games_db[game[Keys.id]] = {
                         Keys.season: game[Keys.season],
@@ -144,6 +183,9 @@ class Builder:
                         stack_info=True
                     )
 
+            meta_db[DB.games_table_name] = {
+                Keys.last_update: datetime.now(timezone.utc)
+            }
         except Exception as e:
             print("\033[31mException occured. Check logs.\033[0m")
             logger.exception(
@@ -168,25 +210,12 @@ class Builder:
         Builder.process_skaters(away_team[Keys.forwards] + away_team[Keys.defense], data, utl.json_value_or_default(box_score, Keys.id))
         Builder.process_goalies(away_team[Keys.goalies], data, utl.json_value_or_default(box_score, Keys.id))
 
-        # TODO: Players will only be updated when there is a game to process
-        # that they participated in. Perhaps this can move up the stack and
-        # get the set of players to process via unique player IDs in the stats
-        # databases?
-        # Builder.process_players(
-        #     home_team[Keys.forwards]
-        #     + home_team[Keys.defense]
-        #     + home_team[Keys.goalies]
-        #     + away_team[Keys.forwards]
-        #     + away_team[Keys.defense]
-        #     + away_team[Keys.goalies],
-        #     data
-        # )
-
         logger.info("Player stats by game processed.")
 
     @staticmethod
     def process_skaters(skaters, data, game_id):
         skater_stats_db = data[DB.skater_stats_table_name]
+        meta_db = data[DB.meta_table_name]
 
         for skater in skaters:
             skater_stats_db[len(skater_stats_db)+1] = {
@@ -208,9 +237,14 @@ class Builder:
                 Keys.takeaways: utl.json_value_or_default(skater, Keys.takeaways)
             }
 
+        meta_db[DB.skater_stats_table_name] = {
+            Keys.last_update: datetime.now(timezone.utc)
+        }
+
     @staticmethod
     def process_goalies(goalies, data, game_id):
         goalie_stats_db = data[DB.goalie_stats_table_name]
+        meta_db = data[DB.meta_table_name]
 
         for goalie in goalies:
             goalie_stats_db[len(goalie_stats_db)+1] = {
@@ -232,16 +266,31 @@ class Builder:
                 Keys.shots_against: utl.json_value_or_default(goalie, Keys.shots_against),
                 Keys.saves: utl.json_value_or_default(goalie, Keys.saves)
             }
+
+        meta_db[DB.goalie_stats_table_name] = {
+            Keys.last_update: datetime.now(timezone.utc)
+        }
     
+    @staticmethod
+    def get_all_playerids(data):
+        skaters_db = data[DB.skater_stats_table_name]
+        goalies_db = data[DB.goalie_stats_table_name]
+        player_ids = set()
+        for record in skaters_db:
+            player_ids.add(skaters_db[record][Keys.player_id])
+        for record in goalies_db:
+            player_ids.add(goalies_db[record][Keys.player_id])
+        return player_ids
+
     @staticmethod
     def process_players(players, data):
         players_db = data[DB.players_table_name]
+        meta_db = data[DB.meta_table_name]
 
         for player_id in players:
             stats = execution_context.client.stats.player_career_stats(player_id)
             first_name = utl.json_value_or_default(stats, Keys.first_name, Keys.default, default="")
             last_name = utl.json_value_or_default(stats, Keys.last_name, Keys.default, default="")
-
             if not utl.json_value_or_default(stats, Keys.is_Active, default=False):
                 logger.info(
                     f"Skipping inactive player. PlayerId: '{stats[Keys.player_id]}', "
@@ -262,6 +311,10 @@ class Builder:
                     Keys.height_in_cm: utl.json_value_or_default(stats, Keys.height_in_cm),
                     Keys.weight_in_kg: utl.json_value_or_default(stats, Keys.weight_in_kg)
                 }
+
+        meta_db[DB.players_table_name] = {
+            Keys.last_update: datetime.now(timezone.utc)
+        }
 
 
     # TODO: Keep for reference while updating other modules.

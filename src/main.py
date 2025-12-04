@@ -22,7 +22,7 @@ _algorithm = Annotated[Algorithms, typer.Option(
         prompt=True
     )]
 
-_app_root = Annotated[Path, typer.Option(
+_app_dir = Annotated[Path, typer.Option(
     help=(
         "Specify the location to save related files. Default location is "
         "'~/.config/nhlpredictor'"
@@ -55,14 +55,15 @@ def build(
             "of data will occur."
         )
     )] = False,
-    experimental: Annotated[bool, typer.Option()] = False
+    app_dir: _app_dir = None
 ):
     """
     Build the data set.
     """
     context = ExecutionContext()
     context.allow_update = update
-    context.experimental = experimental
+    if app_dir:
+        context.app_dir = app_dir
 
     from builder.builder import Builder
     if report:
@@ -83,11 +84,16 @@ def train(
         help=(
             "Allow serialized model to be overwritten."
         )
-    )]
+    )],
+    app_dir: _app_dir = None
 ):
     """
     Train a model using the specified ML algorithm and data.
     """
+    context = ExecutionContext()
+    if app_dir:
+        context.app_dir = app_dir
+    
     from trainer.trainer import Trainer
     Trainer.train(algorithm, output, data_file)
 
@@ -123,11 +129,16 @@ def predict(
             "player's career stats are used.  Once the season has progressed enough, you "
             "may get more accuate results using current season stats."
         )
-    )] = False
+    )] = False,
+    app_dir: _app_dir = None
 ):
     """
     Predict the outcome of a game(s) given the specified model.
     """
+    context = ExecutionContext()
+    if app_dir:
+        context.app_dir = app_dir
+    
     from predictor.predictor import Predictor
     Predictor.predict(algorithm, model, summarizer, date, date_range)
 

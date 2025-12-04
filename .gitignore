@@ -2,7 +2,7 @@
 /dist/
 /venv/
 /NHLStats.egg-info/
-.vscode/
+/.vscode/
 __pycache__/
 *.log
 *.csv

@@ -1,5 +1,6 @@
 class JSON:
     default = "default"
+    last_update = "lastUpdate"
 
     """
     Game related keys.

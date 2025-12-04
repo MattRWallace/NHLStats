@@ -63,8 +63,7 @@ class Utility:
 
     @staticmethod
     def get_db_name():
-        # TODO: implement
-        return "fake_filename_implement_me.sqlite"
+        return "NHLPredictor.sqlite"
     
     """
     Some goalies stats are represented as a save/try pair.  For example, see
